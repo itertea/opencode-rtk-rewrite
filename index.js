@@ -1,22 +1,38 @@
 export const RtkRewrite = async () => {
+  const isWindows = process.platform === "win32"
+  const pathSeparator = isWindows ? ";" : ":"
+
+  const buildPath = (currentPath, home, userProfile) => {
+    const extra = isWindows
+      ? [
+          userProfile ? `${userProfile}\\.cargo\\bin` : "",
+          userProfile ? `${userProfile}\\.local\\bin` : "",
+        ]
+      : [
+          home ? `${home}/.local/bin` : "",
+          home ? `${home}/.cargo/bin` : "",
+          "/usr/local/bin",
+          "/opt/homebrew/bin",
+        ]
+
+    const parts = String(currentPath ?? "").split(pathSeparator).filter(Boolean)
+    for (let j = extra.length - 1; j >= 0; j--) {
+      if (extra[j] && !parts.includes(extra[j])) parts.unshift(extra[j])
+    }
+    return parts.join(pathSeparator)
+  }
+
   const rewrite = async (cmd) => {
     if (!cmd || cmd.includes("\n")) return null
     if (cmd.trimStart().startsWith("rtk ")) return null
 
     const home = String(process.env.HOME ?? "")
+    const userProfile = String(process.env.USERPROFILE ?? "")
     const basePath = String(process.env.PATH ?? "")
-    const extra = [
-      home ? `${home}/.local/bin` : "",
-      home ? `${home}/.cargo/bin` : "",
-      "/usr/local/bin",
-      "/opt/homebrew/bin",
-    ].filter(Boolean)
-
-    const parts = basePath.split(":").filter(Boolean)
-    for (let j = extra.length - 1; j >= 0; j--) {
-      if (!parts.includes(extra[j])) parts.unshift(extra[j])
+    const env = {
+      ...process.env,
+      PATH: buildPath(basePath, home, userProfile),
     }
-    const env = { ...process.env, PATH: parts.join(":") }
 
     try {
       if (typeof Bun !== "undefined" && Bun.spawn) {
@@ -44,18 +60,8 @@ export const RtkRewrite = async () => {
     "shell.env": async (_input, output) => {
       const base = String(output.env.PATH ?? process.env.PATH ?? "")
       const home = String(output.env.HOME ?? process.env.HOME ?? "")
-      const extra = [
-        home ? `${home}/.local/bin` : "",
-        home ? `${home}/.cargo/bin` : "",
-        "/usr/local/bin",
-        "/opt/homebrew/bin",
-      ].filter(Boolean)
-
-      const parts = base.split(":").filter(Boolean)
-      for (let j = extra.length - 1; j >= 0; j--) {
-        if (!parts.includes(extra[j])) parts.unshift(extra[j])
-      }
-      output.env.PATH = parts.join(":")
+      const userProfile = String(output.env.USERPROFILE ?? process.env.USERPROFILE ?? "")
+      output.env.PATH = buildPath(base, home, userProfile)
     },
 
     "tool.execute.before": async (input, output) => {

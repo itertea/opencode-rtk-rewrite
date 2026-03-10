@@ -1,22 +1,8 @@
 # opencode-rtk-rewrite
 
-OpenCode plugin that rewrites normal `bash` tool commands through RTK using the real `rtk rewrite` subcommand.
+OpenCode plugin that rewrites standard shell commands through RTK by calling the real `rtk rewrite` subcommand.
 
-This plugin is designed for people who want RTK savings in OpenCode without maintaining a hardcoded list of rewrite rules inside the plugin itself.
-
-## What it does
-
-- uses the real `rtk rewrite` binary subcommand as the source of truth
-- runs rewrite checks via `Bun.spawn`, so `rtk rewrite` does not appear as a separate shell tool call
-- prepends common RTK install locations to `PATH` for GUI-launched OpenCode Desktop sessions
-- rewrites ordinary local `bash` commands before execution when RTK supports them
-
-## What it does not do
-
-- no SSH-specific rewriting
-- no remote shell bootstrap or remote RTK installation
-- no context pruning, summarization, or message compression after the fact
-- no attempt to override OpenCode's built-in shell implementation
+This plugin is for people who want [RTK](https://github.com/rtk-ai/rtk) command-rewrite savings in OpenCode without maintaining a hardcoded rewrite table inside the plugin.
 
 ## Who this is for
 
@@ -35,19 +21,13 @@ This plugin is probably not for you if you want:
 
 ## Install
 
-1. Install RTK locally:
+1. Install [RTK](https://github.com/rtk-ai/rtk):
 
 ```bash
 cargo install --git https://github.com/rtk-ai/rtk
 ```
 
-2. Verify RTK works:
-
-```bash
-~/.cargo/bin/rtk --version
-```
-
-3. Add the plugin to your OpenCode config:
+2. Add this to `opencode.json`:
 
 ```json
 {
@@ -55,11 +35,49 @@ cargo install --git https://github.com/rtk-ai/rtk
 }
 ```
 
+3. Add the plugin dependency in `package.json`:
+
+Edit `package.json` file:
+
+- Linux: `~/.config/opencode/package.json`
+- macOS: `~/.config/opencode/package.json`
+- Windows: `%USERPROFILE%\\.config\\opencode\\package.json`
+
+```json
+{
+  "dependencies": {
+    "@opencode-ai/plugin": "1.2.24",
+    "opencode-rtk-rewrite": "github:itertea/opencode-rtk-rewrite"
+  }
+}
+```
+
+If you skip this step, `"plugin": ["opencode-rtk-rewrite"]` may not resolve correctly.
+
 4. Restart OpenCode Desktop.
+
+## Alternative: direct GitHub plugin reference
+
+You can also load the plugin directly from GitHub without adding `opencode-rtk-rewrite` to `dependencies`:
+
+```json
+{
+  "plugin": ["github:itertea/opencode-rtk-rewrite"]
+}
+```
+
+In this mode, keep `@opencode-ai/plugin` in dependencies.
+
+Important: on some OpenCode builds, including `1.2.24` in our testing, direct `github:` plugin loading can fail during the internal install step. If that happens, use the recommended setup above: `plugin: ["opencode-rtk-rewrite"]` plus the dependency entry in `~/.config/opencode/package.json`.
+
+Related upstream issues:
+
+- https://github.com/anomalyco/opencode/issues/12378
+- https://github.com/anomalyco/opencode/issues/8763
 
 ## How it works
 
-When OpenCode is about to run a normal `bash` command, the plugin:
+When OpenCode is about to run a standard shell command through its command-execution tool, the plugin:
 
 1. reads the command string
 2. asks `rtk rewrite` whether RTK supports a better equivalent
@@ -78,11 +96,11 @@ Because the rewrite check runs through `Bun.spawn`, the helper call itself does 
 
 ## Important behavior notes
 
-- only normal local `bash` commands are rewritten
-- SSH rewrite is intentionally disabled to avoid surprising behavior on complex remote commands
-- if you want RTK on remote hosts, set it up on the remote shell separately
-- interactive shell behavior is outside the scope of this plugin
-- if RTK is missing or cannot rewrite a command, the original command still runs normally
+- Only standard local shell commands are rewritten
+- SSH rewriting is intentionally disabled to avoid surprising behavior with complex remote commands
+- If you want RTK on remote hosts, install and configure it there separately
+- Interactive shell behavior is outside this plugin's scope
+- If RTK is unavailable or cannot rewrite a command, OpenCode runs the original command unchanged
 
 ## Remote host setup
 
@@ -94,30 +112,30 @@ If you also want RTK compression on a remote server, install RTK on that server 
 
 ### Versus `openrtk`
 
-`openrtk` is the closest public alternative.
+[`openrtk`](https://github.com/martinstannard/openrtk) is the closest public alternative.
 
 Main difference:
 
 - `openrtk` uses a hardcoded rewrite table inside the plugin
-- `opencode-rtk-rewrite` uses the actual `rtk rewrite` command from the installed RTK binary
+- `opencode-rtk-rewrite` calls the installed RTK binary through `rtk rewrite`
 
 Why that matters:
 
-- this plugin automatically follows the RTK version you actually installed
-- no duplicated rewrite logic to keep in sync manually
-- if RTK adds or changes supported rewrites, this plugin picks them up immediately
+- This plugin follows the RTK version you actually have installed
+- There is no duplicated rewrite logic to maintain manually
+- If RTK adds or changes supported rewrites, this plugin picks that up immediately
 
 Tradeoff:
 
-- this plugin depends on the local RTK binary being installed and reachable in `PATH`
+- This plugin requires a local RTK binary that is installed and available in `PATH`
 
 ### Versus `tokf`
 
-`tokf` is a broader shell-output filtering system, not an RTK plugin.
+[`tokf`](https://github.com/mpecan/tokf) is a broader shell-output filtering system, not an RTK plugin.
 
 Main difference:
 
-- `tokf` is a programmable output filter framework
+- `tokf` is a programmable output-filtering framework
 - `opencode-rtk-rewrite` is a thin RTK bridge for OpenCode
 
 Use `tokf` if you want:
@@ -128,24 +146,29 @@ Use `tokf` if you want:
 
 Use this plugin if you want:
 
-- actual RTK behavior
-- less configuration
-- RTK to stay the source of truth
+- Actual RTK behavior
+- Less configuration
+- RTK to remain the source of truth
 
 ## Troubleshooting
 
-### RTK is installed in terminal, but OpenCode cannot find it
+### RTK is installed in your terminal, but OpenCode cannot find it
 
-Desktop apps often start with a smaller `PATH` than your shell.
+Desktop apps often start with a more limited `PATH` than your shell.
 
-This plugin already prepends common locations:
+This plugin already prepends these common locations:
 
 - `~/.local/bin`
 - `~/.cargo/bin`
 - `/usr/local/bin`
 - `/opt/homebrew/bin`
 
-If RTK still is not found, verify where it is installed:
+On Windows, the plugin prepends:
+
+- `%USERPROFILE%\\.cargo\\bin`
+- `%USERPROFILE%\\.local\\bin`
+
+If OpenCode still cannot find RTK, check where it is installed:
 
 ```bash
 which rtk
@@ -153,23 +176,23 @@ which rtk
 
 ### A command was not rewritten
 
-That usually means one of these:
+This usually means one of the following:
 
 - RTK does not support rewriting that command
-- the command is too complex for RTK rewrite
-- the command is already prefixed with `rtk`
-- the command is multiline and is intentionally skipped
+- The command is too complex for `rtk rewrite`
+- The command is already prefixed with `rtk`
+- The command is multiline, which this plugin intentionally skips
 
-### Remote SSH command was not rewritten
+### A remote SSH command was not rewritten
 
 That is expected. SSH-specific rewriting is intentionally disabled in this plugin.
 
 ## Design goals
 
-- keep behavior predictable
-- keep the plugin small
-- let RTK own rewrite semantics
-- avoid extra visible shell noise in OpenCode
+- Keep behavior predictable
+- Keep the plugin small
+- Let RTK define rewrite semantics
+- Avoid extra visible shell noise in OpenCode
 
 ## License
 
