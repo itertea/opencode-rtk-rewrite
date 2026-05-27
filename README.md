@@ -27,7 +27,16 @@ This plugin is probably not for you if you want:
 cargo install --git https://github.com/rtk-ai/rtk
 ```
 
-2. Add this to `opencode.json`:
+2. Install the plugin package into the opencode global config directory:
+
+```bash
+cd ~/.config/opencode && npm install github:itertea/opencode-rtk-rewrite
+```
+
+This caches the package in `~/.config/opencode/node_modules/`. Opencode resolves
+`"opencode-rtk-rewrite"` from that directory at startup — no network fetch on each launch.
+
+3. Add the plugin entry to `~/.config/opencode/opencode.json`:
 
 ```json
 {
@@ -35,45 +44,17 @@ cargo install --git https://github.com/rtk-ai/rtk
 }
 ```
 
-3. Add the plugin dependency in `package.json`:
+4. Verify startup is fast:
 
-Edit `package.json` file:
-
-- Linux: `~/.config/opencode/package.json`
-- macOS: `~/.config/opencode/package.json`
-- Windows: `%USERPROFILE%\\.config\\opencode\\package.json`
-
-```json
-{
-  "dependencies": {
-    "@opencode-ai/plugin": "1.2.24",
-    "opencode-rtk-rewrite": "github:itertea/opencode-rtk-rewrite"
-  }
-}
+```bash
+time opencode --version
 ```
 
-If you skip this step, `"plugin": ["opencode-rtk-rewrite"]` may not resolve correctly.
+> **Note for Windows:** the global config directory is `%USERPROFILE%\.config\opencode\`.
 
-4. Restart OpenCode Desktop.
-
-## Alternative: direct GitHub plugin reference
-
-You can also load the plugin directly from GitHub without adding `opencode-rtk-rewrite` to `dependencies`:
-
-```json
-{
-  "plugin": ["github:itertea/opencode-rtk-rewrite"]
-}
-```
-
-In this mode, keep `@opencode-ai/plugin` in dependencies.
-
-Important: on some OpenCode builds, including `1.2.24` in our testing, direct `github:` plugin loading can fail during the internal install step. If that happens, use the recommended setup above: `plugin: ["opencode-rtk-rewrite"]` plus the dependency entry in `~/.config/opencode/package.json`.
-
-Related upstream issues:
-
-- https://github.com/anomalyco/opencode/issues/12378
-- https://github.com/anomalyco/opencode/issues/8763
+> **Do not** use `"plugin": ["github:itertea/opencode-rtk-rewrite"]` in `opencode.json`.
+> That format fetches from GitHub on every startup and will hang if the network is slow
+> or unavailable. Use the `npm install` step above instead.
 
 ## How it works
 
@@ -151,6 +132,12 @@ Use this plugin if you want:
 - RTK to remain the source of truth
 
 ## Troubleshooting
+
+### OpenCode hangs at startup
+
+The plugin is configured with the `github:` prefix in `opencode.json` instead of using
+the locally installed package. Run the `npm install` step from the install instructions,
+then ensure your config uses `"plugin": ["opencode-rtk-rewrite"]` without the prefix.
 
 ### RTK is installed in your terminal, but OpenCode cannot find it
 
