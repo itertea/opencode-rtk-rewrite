@@ -27,34 +27,20 @@ This plugin is probably not for you if you want:
 cargo install --git https://github.com/rtk-ai/rtk
 ```
 
-2. Install the plugin package into the opencode global config directory:
+2. Install the plugin globally using the opencode CLI:
 
 ```bash
-cd ~/.config/opencode && npm install github:itertea/opencode-rtk-rewrite
+opencode plugin -g github:itertea/opencode-rtk-rewrite
 ```
 
-This caches the package in `~/.config/opencode/node_modules/`. Opencode resolves
-`"opencode-rtk-rewrite"` from that directory at startup — no network fetch on each launch.
+This caches the package in the opencode XDG cache directory and writes the plugin entry
+into `~/.config/opencode/opencode.jsonc` automatically. No manual config editing required.
 
-3. Add the plugin entry to `~/.config/opencode/opencode.json`:
-
-```json
-{
-  "plugin": ["opencode-rtk-rewrite"]
-}
-```
-
-4. Verify startup is fast:
+3. Verify startup is fast:
 
 ```bash
 time opencode --version
 ```
-
-> **Note for Windows:** the global config directory is `%USERPROFILE%\.config\opencode\`.
-
-> **Do not** use `"plugin": ["github:itertea/opencode-rtk-rewrite"]` in `opencode.json`.
-> That format fetches from GitHub on every startup and will hang if the network is slow
-> or unavailable. Use the `npm install` step above instead.
 
 ## How it works
 
@@ -135,9 +121,13 @@ Use this plugin if you want:
 
 ### OpenCode hangs at startup
 
-The plugin is configured with the `github:` prefix in `opencode.json` instead of using
-the locally installed package. Run the `npm install` step from the install instructions,
-then ensure your config uses `"plugin": ["opencode-rtk-rewrite"]` without the prefix.
+The plugin entry was added to the config manually (by editing `opencode.json` or
+`opencode.jsonc` directly) without running `opencode plugin -g` first. Without the
+install step, the package is not in the opencode cache, and opencode fetches it from
+GitHub on every startup — which hangs on a slow or unavailable network.
+
+Fix: run `opencode plugin -g github:itertea/opencode-rtk-rewrite` to populate the
+cache, then restart.
 
 ### RTK is installed in your terminal, but OpenCode cannot find it
 
