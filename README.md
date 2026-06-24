@@ -27,53 +27,20 @@ This plugin is probably not for you if you want:
 cargo install --git https://github.com/rtk-ai/rtk
 ```
 
-2. Add this to `opencode.json`:
+2. Install the plugin globally using the opencode CLI:
 
-```json
-{
-  "plugin": ["opencode-rtk-rewrite"]
-}
+```bash
+opencode plugin -g github:itertea/opencode-rtk-rewrite
 ```
 
-3. Add the plugin dependency in `package.json`:
+This caches the package in the opencode XDG cache directory and writes the plugin entry
+into `~/.config/opencode/opencode.jsonc` automatically. No manual config editing required.
 
-Edit `package.json` file:
+3. Verify startup is fast:
 
-- Linux: `~/.config/opencode/package.json`
-- macOS: `~/.config/opencode/package.json`
-- Windows: `%USERPROFILE%\\.config\\opencode\\package.json`
-
-```json
-{
-  "dependencies": {
-    "@opencode-ai/plugin": "1.2.24",
-    "opencode-rtk-rewrite": "github:itertea/opencode-rtk-rewrite"
-  }
-}
+```bash
+time opencode --version
 ```
-
-If you skip this step, `"plugin": ["opencode-rtk-rewrite"]` may not resolve correctly.
-
-4. Restart OpenCode Desktop.
-
-## Alternative: direct GitHub plugin reference
-
-You can also load the plugin directly from GitHub without adding `opencode-rtk-rewrite` to `dependencies`:
-
-```json
-{
-  "plugin": ["github:itertea/opencode-rtk-rewrite"]
-}
-```
-
-In this mode, keep `@opencode-ai/plugin` in dependencies.
-
-Important: on some OpenCode builds, including `1.2.24` in our testing, direct `github:` plugin loading can fail during the internal install step. If that happens, use the recommended setup above: `plugin: ["opencode-rtk-rewrite"]` plus the dependency entry in `~/.config/opencode/package.json`.
-
-Related upstream issues:
-
-- https://github.com/anomalyco/opencode/issues/12378
-- https://github.com/anomalyco/opencode/issues/8763
 
 ## How it works
 
@@ -151,6 +118,16 @@ Use this plugin if you want:
 - RTK to remain the source of truth
 
 ## Troubleshooting
+
+### OpenCode hangs at startup
+
+The plugin entry was added to the config manually (by editing `opencode.json` or
+`opencode.jsonc` directly) without running `opencode plugin -g` first. Without the
+install step, the package is not in the opencode cache, and opencode fetches it from
+GitHub on every startup — which hangs on a slow or unavailable network.
+
+Fix: run `opencode plugin -g github:itertea/opencode-rtk-rewrite` to populate the
+cache, then restart.
 
 ### RTK is installed in your terminal, but OpenCode cannot find it
 
